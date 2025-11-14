@@ -1,32 +1,43 @@
 #!/usr/bin/env bash
+set -e
 
 DOTFILES="$HOME/dotfiles"
 
-echo "Creating symlinks..."
+echo "==> Using dotfiles in: $DOTFILES"
 
-# Git configs
-ln -sf "$DOTFILES/git/.gitconfig" "$HOME/.gitconfig"
-[ -f "$DOTFILES/git/.gitignore_global" ] && ln -sf "$DOTFILES/git/.gitignore_global" "$HOME/.gitignore_global"
-
-# Fish
-mkdir -p "$HOME/.config/fish"
-ln -sf "$DOTFILES/fish/config.fish" "$HOME/.config/fish/config.fish"
-if [ -d "$DOTFILES/fish/functions" ]; then
-  mkdir -p "$HOME/.config/fish/functions"
-  for f in "$DOTFILES"/fish/functions/*.fish; do
-    ln -sf "$f" "$HOME/.config/fish/functions/"
-  done
+echo "==> Checking for GNU Stow..."
+if ! command -v stow >/dev/null 2>&1; then
+  echo "Error: stow is not installed."
+  exit 1
 fi
 
-# Starship
-[ -f "$DOTFILES/starship/starship.toml" ] && ln -sf "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
+cd "$DOTFILES"
 
-# Kitty
-mkdir -p "$HOME/.config/kitty"
-[ -f "$DOTFILES/kitty/kitty.conf" ] && ln -sf "$DOTFILES/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
+echo "==> Stowing packages..."
+for pkg in fish starship git kitty tmux; do
+  if [ -d "$DOTFILES/$pkg" ]; then
+    echo "  - stow $pkg"
+    stow "$pkg" || true
+  fi
+done
 
-# Tmux
-[ -f "$DOTFILES/tmux/tmux.conf" ] && ln -sf "$DOTFILES/tmux/tmux.conf" "$HOME/.tmux.conf"
+###################################
+# OS-SPECIFIC SETUP
+###################################
+case "$(uname -s)" in
+    Linux)
+        if grep -qi microsoft /proc/version 2>/dev/null; then
+            echo "==> Running WSL setup..."
+            "$DOTFILES/os/wsl.sh"
+        else
+            echo "==> Running Linux setup..."
+            "$DOTFILES/os/linux.sh"
+        fi
+        ;;
+    Darwin)
+        echo "==> Running macOS setup..."
+        "$DOTFILES/os/macos.sh"
+        ;;
+esac
 
-echo "Done!"
-
+echo "==> Done. Open a new terminal or run 'exec fish' to reload your shell."
