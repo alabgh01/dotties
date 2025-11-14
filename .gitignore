@@ -1,0 +1,11 @@
+# OS/editor junk
+.DS_Store
+*.swp
+*.swo
+
+# Backups
+*.bak
+*.backup-*
+
+# Logs
+logs/
